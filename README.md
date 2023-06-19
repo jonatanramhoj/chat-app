@@ -22,7 +22,7 @@ This is a real-time chat application built using [Expo](https://expo.dev/). It a
 Make sure you have the following installed on your machine:
 
 - Node.js
-- npm or yarn
+- npm
 - Expo CLI
 
 ## Getting Started
@@ -31,16 +31,10 @@ Follow these steps to get the app up and running on your local machine:
 
 1. Clone this repository to your local machine.
 2. Navigate to the project directory in your terminal.
-3. Install the project dependencies using your preferred package manager:
+3. Install the project dependencies:
 
 ```
 npm install
-```
-
-or
-
-```
-yarn
 ```
 
 4. Start the development server:
