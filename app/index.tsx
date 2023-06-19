@@ -16,7 +16,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleChange = (name) => {
+  const handleChange = (name: string) => {
     setUserName(name);
   };
 

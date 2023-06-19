@@ -10,11 +10,22 @@ import {
   startAfter,
 } from "firebase/firestore";
 import { db } from "./config";
+import {
+  ChatMessage,
+  PostChatMessageProps,
+  GetInitialMessagesProps,
+  LoadMoreMessagesProps,
+  OnFirestoreChangeProps,
+} from "../types";
 
 const collectionRef = collection(db, "messages");
 const maxLimit = 25;
 
-export const postChatMessage = async (userId, userName, message) => {
+export const postChatMessage = async ({
+  userId,
+  userName,
+  message,
+}: PostChatMessageProps) => {
   try {
     await addDoc(collectionRef, {
       userId,
@@ -28,11 +39,11 @@ export const postChatMessage = async (userId, userName, message) => {
   }
 };
 
-export const getInitialMessages = async (
+export const getInitialMessages = async ({
   setMessages,
   setLastVisible,
-  setLoading
-) => {
+  setLoading,
+}: GetInitialMessagesProps) => {
   try {
     setLoading(true);
 
@@ -44,13 +55,21 @@ export const getInitialMessages = async (
 
     const querySnapshot = await getDocs(q);
 
-    const data = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const data: ChatMessage[] = querySnapshot.docs.map((doc) => {
+      const { message, timestamp, userId, userName } = doc.data();
+      return {
+        id: doc.id,
+        message,
+        timestamp,
+        userId,
+        userName,
+      };
+    });
+
+    const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
 
     setMessages(data);
-    setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+    setLastVisible(lastVisible);
 
     setLoading(false);
   } catch (error) {
@@ -60,12 +79,12 @@ export const getInitialMessages = async (
   }
 };
 
-export const loadMoreMessages = async (
+export const loadMoreMessages = async ({
   lastVisible,
   setLastVisible,
   setMessages,
-  setLoading
-) => {
+  setLoading,
+}: LoadMoreMessagesProps) => {
   if (lastVisible) {
     try {
       setLoading(true);
@@ -79,12 +98,22 @@ export const loadMoreMessages = async (
 
       const querySnapshot = await getDocs(q);
 
-      const loadedMessages = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const loadedMessages: ChatMessage[] = querySnapshot.docs.map((doc) => {
+        const { message, timestamp, userId, userName } = doc.data();
+        return {
+          id: doc.id,
+          message,
+          timestamp,
+          userId,
+          userName,
+        };
+      });
 
-      setMessages((messages) => [...messages, ...loadedMessages]);
+      setMessages((prevMessages: ChatMessage[]) => [
+        ...prevMessages,
+        ...loadedMessages,
+      ]);
+
       setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
 
       setLoading(false);
@@ -95,18 +124,18 @@ export const loadMoreMessages = async (
   }
 };
 
-export const onFirestoreChange = (setMessages) => {
+export const onFirestoreChange = ({ setMessages }: OnFirestoreChangeProps) => {
   try {
     const q = query(collectionRef, orderBy("timestamp", "desc"), limit(1));
 
     return onSnapshot(q, (querySnapshot) => {
       if (querySnapshot.docs.length > 0) {
-        const lastMessage = querySnapshot.docs[0].data();
+        const lastMessage = querySnapshot.docs[0].data() as ChatMessage;
         const lastMessageId = querySnapshot.docs[0].id;
 
         if (lastMessage.timestamp === null) return;
 
-        setMessages((prevMessages) => {
+        setMessages((prevMessages: ChatMessage[]) => {
           const messageExist = prevMessages.some(
             (item) => item.id === lastMessageId
           );
@@ -119,6 +148,6 @@ export const onFirestoreChange = (setMessages) => {
     });
   } catch (error) {
     // todo: handle errors
-    console.log("error:", error);
+    console.error("error:", error);
   }
 };

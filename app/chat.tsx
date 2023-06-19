@@ -19,51 +19,63 @@ import {
   loadMoreMessages,
 } from "../firebase/functions";
 import { colors } from "../styles";
+import { ChatMessage } from "../types";
+import { QueryDocumentSnapshot } from "firebase/firestore";
 
 export default function Chat() {
   const params = useSearchParams();
-  const { userName, userId } = params;
+  const { userName, userId } = params as { userName: string; userId: string };
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [lastVisible, setLastVisible] = useState(null);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchMessages = async () => {
-      await getInitialMessages(setMessages, setLastVisible, setLoading);
+      await getInitialMessages({ setMessages, setLastVisible, setLoading });
     };
     fetchMessages();
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onFirestoreChange(setMessages);
+    const unsubscribe = onFirestoreChange({ setMessages });
     return () => {
-      unsubscribe();
+      unsubscribe && unsubscribe();
     };
   }, []);
 
   const handleLoadMore = async () => {
-    await loadMoreMessages(
+    await loadMoreMessages({
       lastVisible,
       setLastVisible,
       setMessages,
-      setLoading
-    );
+      setLoading,
+    });
   };
 
   const handleSend = async () => {
     if (message === "") return;
-    await postChatMessage(userId, userName, message);
+    await postChatMessage({ userId, userName, message });
     setMessage("");
   };
 
-  const formatUserName = (name) => name.substr(0, 1);
+  const formatUserName = (name: string) => name.substr(0, 1);
 
-  const handleRenderItem = ({ item, index }) => {
+  const handleRenderItem = ({
+    item,
+    index,
+  }: {
+    item: ChatMessage;
+    index: number;
+  }) => {
     const isFirstMessage =
       messages[index - 1] === undefined ||
       messages[index - 1]?.userId !== item?.userId;
+
     const showAvatar = isFirstMessage;
+
     return (
       <View style={styles.message}>
         <View style={styles.messageContainer}>
@@ -98,7 +110,7 @@ export default function Chat() {
         <FlatList
           style={styles.messageList}
           data={messages}
-          keyExtractor={(item, index) => index}
+          keyExtractor={(item, index) => index.toString()}
           renderItem={handleRenderItem}
           inverted={true}
           onEndReachedThreshold={0.1}
